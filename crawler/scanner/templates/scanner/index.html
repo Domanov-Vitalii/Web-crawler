@@ -1,0 +1,29 @@
+{% extends 'scanner/base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card card-custom p-4">
+            <h3 class="mb-3 text-center">Генератор звіту</h3>
+            <p class="text-muted text-center mb-4">Введіть URL сторінки, щоб знайти всі биті посилання.</p>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="url" class="form-label fw-bold">Стартовий URL</label>
+                    <input type="url" class="form-control" id="url" name="url" required placeholder="https://example.com">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="depth" class="form-label fw-bold">Глибина сканування</label>
+                    <input type="number" class="form-control" id="depth" name="depth" value="1" min="0" max="3" required>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-brand">🚀 Сканувати та завантажити CSV</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
