@@ -1,4 +1,5 @@
 import csv
+from collections import Counter
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
@@ -6,6 +7,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from .crawler import WebCrawler
 from .models import ScanTask, ScanResult
+from .tasks import run_crawler_task
+
 
 def register_view(request):
     """Обробка сторінки реєстрації"""
@@ -21,23 +24,18 @@ def register_view(request):
 
 @login_required
 def home_view(request):
+    """Головна сторінка зі сканером"""
     if request.method == 'POST':
         start_url = request.POST.get('url')
         max_depth = int(request.POST.get('depth', 1))
 
-        task = ScanTask.objects.create(user=request.user, target_url=start_url, depth=max_depth, status='RUNNING')
-        
-        crawler = WebCrawler(start_url=start_url, max_depth=max_depth)
-        results = crawler.crawl()
-
-        total_links = len(results)
-        broken_links = sum(1 for r in results if r['is_broken'])
-
-        task.status = 'COMPLETED'
-        task.save()
-
-        ScanResult.objects.create(task=task, total_unique_links=total_links, broken_links_count=broken_links, raw_data=results)
-
+        task = ScanTask.objects.create(
+            user=request.user,
+            target_url=start_url,
+            depth=max_depth,
+            status='PENDING'
+        )
+        run_crawler_task.delay(task.id)
         return redirect('history')
 
     return render(request, 'scanner/index.html')
@@ -65,3 +63,28 @@ def history_view(request):
     """Сторінка з історією сканувань поточного користувача"""
     tasks = ScanTask.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'scanner/history.html', {'tasks': tasks})
+
+@login_required
+def report_details_view(request, task_id):
+    """Сторінка з графіками та деталями конкретного сканування"""
+    task = get_object_or_404(ScanTask, id=task_id, user=request.user)
+    
+    if not hasattr(task, 'result') or not task.result.raw_data:
+        return redirect('history')
+
+    raw_data = task.result.raw_data
+    
+    broken_links = [row for row in raw_data if row.get('is_broken')]
+    
+    status_counts = Counter(str(row.get('status', 'Error')) for row in raw_data)
+    
+    context = {
+        'task': task,
+        'broken_links': broken_links,
+        'working_count': task.result.total_unique_links - task.result.broken_links_count,
+        'broken_count': task.result.broken_links_count,
+        'status_labels': list(status_counts.keys()),
+        'status_values': list(status_counts.values()),
+    }
+    
+    return render(request, 'scanner/report_details.html', context)

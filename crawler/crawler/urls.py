@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.contrib.auth.views import LoginView, LogoutView
-from scanner.views import home_view, register_view, history_view, download_report_view
+from scanner.views import home_view, register_view, history_view, download_report_view, report_details_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +27,5 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
     path('history/', history_view, name='history'),
     path('download/<int:task_id>/', download_report_view, name='download'),
+    path('report/<int:task_id>/', report_details_view, name='report_details'),
 ]

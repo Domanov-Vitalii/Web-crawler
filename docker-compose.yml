@@ -18,6 +18,11 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -33,6 +38,24 @@ services:
       - DB_NAME=crawler_db
       - DB_USER=crawler_user
       - DB_PASSWORD=super_secret_password
+      - CELERY_BROKER_URL=redis://redis:6379/0
+  
+  celery:
+    build: .
+    command: celery -A crawler worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DB_HOST=db
+      - DB_NAME=crawler_db
+      - DB_USER=crawler_user
+      - DB_PASSWORD=super_secret_password
+      - CELERY_BROKER_URL=redis://redis:6379/0
 
 volumes:
   postgres_data:

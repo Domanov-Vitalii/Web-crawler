@@ -1,0 +1,104 @@
+{% extends 'scanner/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Звіт: <a href="{{ task.target_url }}" target="_blank">{{ task.target_url }}</a></h2>
+        <a href="{% url 'history' %}" class="btn btn-outline-secondary">Назад до історії</a>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-5 mb-3 mb-md-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-center">Загальний стан посилань</h5>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="donutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-center">Розподіл статус-кодів</h5>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mb-3 text-danger">Биті посилання ({{ broken_count }})</h4>
+    {% if broken_links %}
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover table-striped mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Статус</th>
+                    <th>Бите посилання</th>
+                    <th>Знайдено на сторінці</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for link in broken_links %}
+                <tr>
+                    <td><span class="badge bg-danger">{{ link.status }}</span></td>
+                    <td style="max-width: 300px; word-wrap: break-word;"><a href="{{ link.url }}" target="_blank">{{ link.url }}</a></td>
+                    <td style="max-width: 300px; word-wrap: break-word;"><a href="{{ link.source }}" target="_blank" class="text-muted">{{ link.source }}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-success" role="alert">
+        Чудово! На цьому сайті не знайдено жодного битого посилання.
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const workingCount = {{ working_count }};
+    const brokenCount = {{ broken_count }};
+    
+    const statusLabels = {{ status_labels|safe }};
+    const statusValues = {{ status_values|safe }};
+
+    const ctxDonut = document.getElementById('donutChart').getContext('2d');
+    new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+            labels: ['Робочі', 'Биті'],
+            datasets: [{
+                data: [workingCount, brokenCount],
+                backgroundColor: ['#198754', '#dc3545'],
+                hoverOffset: 4
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const ctxBar = document.getElementById('barChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                label: 'Кількість посилань',
+                data: statusValues,
+                backgroundColor: '#0d6efd', // Синій
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+{% endblock %}

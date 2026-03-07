@@ -56,7 +56,10 @@
 
                     <td>
                         {% if task.status == 'COMPLETED' %}
-                            <a href="{% url 'download' task.id %}" class="btn btn-sm btn-outline-success">📥 CSV</a>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'report_details' task.id %}" class="btn btn-sm btn-outline-primary">Деталі</a>
+                                <a href="{% url 'download' task.id %}" class="btn btn-sm btn-outline-success">CSV</a>
+                            </div>
                         {% endif %}
                     </td>
                 </tr>
