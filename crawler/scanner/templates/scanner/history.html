@@ -19,12 +19,12 @@
             </thead>
            <tbody>
                 {% for task in tasks %}
-                <tr>
+                <tr id="task-row-{{ task.id }}">
                     <td>{{ task.created_at|date:"d.m.Y H:i" }}</td>
                     <td><a href="{{ task.target_url }}" target="_blank" class="text-decoration-none">{{ task.target_url|truncatechars:30 }}</a></td>
                     <td>{{ task.depth }}</td>
                     
-                    <td>
+                    <td class="total-cell">
                         {% if task.status == 'COMPLETED' %}
                             {{ task.result.total_unique_links }}
                         {% else %}
@@ -32,7 +32,7 @@
                         {% endif %}
                     </td>
                     
-                    <td>
+                    <td class="broken-cell">
                         {% if task.status == 'COMPLETED' %}
                             {% if task.result.broken_links_count > 0 %}
                                 <span class="badge bg-danger">{{ task.result.broken_links_count }}</span>
@@ -44,7 +44,7 @@
                         {% endif %}
                     </td>
                     
-                    <td>
+                    <td class="status-cell">
                         {% if task.status == 'COMPLETED' %}
                             <span class="badge bg-success">COMPLETED</span>
                         {% elif task.status == 'RUNNING' %}
@@ -54,11 +54,11 @@
                         {% endif %}
                     </td>
 
-                    <td>
+                    <td class="action-cell">
                         {% if task.status == 'COMPLETED' %}
                             <div class="btn-group" role="group">
-                                <a href="{% url 'report_details' task.id %}" class="btn btn-sm btn-outline-primary">Деталі</a>
-                                <a href="{% url 'download' task.id %}" class="btn btn-sm btn-outline-success">CSV</a>
+                                <a href="{% url 'scanner:report_details' task.id %}" class="btn btn-sm btn-outline-primary">Деталі</a>
+                                <a href="{% url 'scanner:download' task.id %}" class="btn btn-sm btn-outline-success">CSV</a>
                             </div>
                         {% endif %}
                     </td>
@@ -68,7 +68,7 @@
         </table>
     {% else %}
         <div class="alert alert-info text-center">
-            Ви ще не запускали сканування. <a href="{% url 'home' %}">Спробуйте зараз!</a>
+            Ви ще не запускали сканування. <a href="{% url 'scanner:index' %}">Спробуйте зараз!</a>
         </div>
     {% endif %}
 </div>

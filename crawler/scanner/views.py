@@ -1,6 +1,6 @@
 import csv
 from collections import Counter
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
@@ -17,7 +17,7 @@ def register_view(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
-            return redirect('home')
+            return redirect('scanner:index')
     else:
         form = UserCreationForm()
     return render(request, 'scanner/register.html', {'form': form})
@@ -36,7 +36,7 @@ def home_view(request):
             status='PENDING'
         )
         run_crawler_task.delay(task.id)
-        return redirect('history')
+        return redirect('scanner:history')
 
     return render(request, 'scanner/index.html')
 
@@ -46,7 +46,7 @@ def download_report_view(request, task_id):
     task = get_object_or_404(ScanTask, id=task_id, user=request.user)
     
     if not hasattr(task, 'result') or not task.result.raw_data:
-        return redirect('history')
+        return redirect('scanner:history')
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="broken_links_{task.id}.csv"'
@@ -70,7 +70,7 @@ def report_details_view(request, task_id):
     task = get_object_or_404(ScanTask, id=task_id, user=request.user)
     
     if not hasattr(task, 'result') or not task.result.raw_data:
-        return redirect('history')
+        return redirect('scanner:history')
 
     raw_data = task.result.raw_data
     
@@ -88,3 +88,35 @@ def report_details_view(request, task_id):
     }
     
     return render(request, 'scanner/report_details.html', context)
+
+
+@login_required
+def pending_tasks_api(request):
+    """API endpoint to get the status of pending or currently running tasks for dynamic UI updates"""
+    task_ids = request.GET.get('task_ids')
+    
+    if task_ids:
+        # Check specific tasks
+        ids = [int(x) for x in task_ids.split(',') if x.isdigit()]
+        tasks = ScanTask.objects.filter(user=request.user, id__in=ids)
+    else:
+        # Check all pending/running tasks by default
+        tasks = ScanTask.objects.filter(user=request.user, status__in=['PENDING', 'RUNNING'])
+        
+    data = []
+    for t in tasks:
+        item = {
+            'id': t.id,
+            'status': t.status,
+            'target_url': t.target_url,
+        }
+        if t.status == 'COMPLETED' and hasattr(t, 'result'):
+            item['total'] = t.result.total_unique_links
+            item['broken'] = t.result.broken_links_count
+        elif t.status == 'FAILED' and hasattr(t, 'result'):
+            item['total'] = 0
+            item['broken'] = 0
+
+        data.append(item)
+        
+    return JsonResponse({'tasks': data})

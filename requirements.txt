@@ -3,5 +3,8 @@ requests
 beautifulsoup4
 psycopg2-binary
 celery
-redis 
+redis
 aiohttp
+python-dotenv==1.0.1
+whitenoise==6.7.0
+playwright

@@ -8,6 +8,7 @@ WORKDIR /app
 COPY requirements.txt /app/
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN playwright install chromium --with-deps
 
 COPY . /app/
 
